@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DSA Visualizer | Learn Algorithms Visually</title>
+<style>
+:root{--bg:#f4f7fb;--panel:#fff;--ink:#182638;--muted:#65758a;--blue:#2764d8;--blue2:#dce8ff;--green:#18865b;--red:#cc4b4b;--orange:#d77b18;--border:#dce4ee}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:linear-gradient(120deg,#10243d,#245fc4);color:white;padding:24px clamp(16px,4vw,42px)}
+header h1{margin:0 0 7px;font-size:clamp(25px,4vw,36px)}header p{margin:0;color:#dce8ff;line-height:1.5;max-width:780px}
+.wrap{max-width:1280px;margin:auto;padding:18px;display:grid;grid-template-columns:310px 1fr;gap:16px}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:17px;box-shadow:0 5px 18px #14263b0a}
+h2{font-size:17px;margin:0 0 14px}label{display:block;font-size:13px;font-weight:700;margin:13px 0 6px}
+select,input,textarea{width:100%;border:1px solid #cbd6e4;border-radius:9px;padding:10px;background:white;color:var(--ink);font:inherit}
+textarea{resize:vertical;min-height:76px}
+button{border:0;border-radius:9px;background:var(--blue);color:white;font-weight:750;padding:10px 12px;cursor:pointer}button.secondary{background:#e9eef6;color:#25384e}button.green{background:var(--green)}button:disabled{opacity:.45;cursor:not-allowed}
+.buttons{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:13px}
+.note{font-size:12px;line-height:1.5;color:var(--muted);margin:12px 0 0}
+.content{display:grid;gap:16px;align-content:start}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.stat{background:#eef4ff;border-radius:11px;padding:12px}.stat span{display:block;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.05em}.stat b{display:block;font-size:20px;margin-top:4px}
+.stage{min-height:300px;display:flex;align-items:flex-end;justify-content:center;gap:5px;padding:30px 14px 22px;border:1px solid var(--border);border-radius:12px;background:repeating-linear-gradient(0deg,#fff,#fff 39px,#edf2f8 40px)}
+.bar{min-width:8px;max-width:54px;flex:1;display:flex;align-items:flex-start;justify-content:center;border-radius:6px 6px 0 0;background:#79a4f7;color:#12294a;font-weight:800;font-size:12px;padding-top:7px;transition:height .22s ease,background .2s}
+.bar.active{background:#f6b44e}.bar.done{background:#55bd91}.bar.pivot{background:#c3a0f4}
+.log{background:#101c2c;color:#dce8f8;border-radius:11px;padding:13px;font-family:ui-monospace,SFMono-Regular,monospace;font-size:12px;line-height:1.6;min-height:58px;white-space:pre-wrap}
+.explain{line-height:1.6;font-size:14px}.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:10px}.dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px}
+table{border-collapse:collapse;width:100%;font-size:13px}td,th{border-bottom:1px solid var(--border);padding:9px;text-align:left}th{color:var(--muted)}
+footer{max-width:1280px;margin:auto;padding:0 18px 24px;color:var(--muted);font-size:12px;line-height:1.6}
+@media(max-width:850px){.wrap{grid-template-columns:1fr}.stats{grid-template-columns:repeat(3,1fr)}.stage{min-height:250px}}
+</style>
+</head>
+<body>
+<header><h1>DSA Visualizer</h1><p>Explore sorting algorithms and searching step by step. Change the input, control the animation, and see how algorithms compare.</p></header>
+<main class="wrap">
+<aside class="panel">
+<h2>Algorithm lab</h2>
+<label for="algorithm">Choose algorithm</label>
+<select id="algorithm"><option value="bubble">Bubble Sort</option><option value="selection">Selection Sort</option><option value="insertion">Insertion Sort</option><option value="linear">Linear Search</option><option value="binary">Binary Search (sorted input)</option></select>
+<label for="values">Input numbers (comma-separated)</label>
+<textarea id="values">42, 18, 35, 7, 29, 13, 50, 24</textarea>
+<label for="target">Search target (for search algorithms)</label>
+<input id="target" type="number" value="29">
+<label for="speed">Animation speed <span id="speedText">Normal</span></label>
+<input id="speed" type="range" min="1" max="5" value="3">
+<div class="buttons">
+<button id="run">Run</button><button id="step" class="secondary">Next step</button>
+<button id="pause" class="secondary" disabled>Pause</button><button id="reset" class="secondary">Reset</button>
+</div>
+<p class="note">Tip: choose Bubble Sort, then press Next step to see adjacent comparisons. For Binary Search, the visualizer sorts a copy of the input before searching.</p>
+</aside>
+<section class="content">
+<div class="panel">
+<div class="stats">
+<div class="stat"><span>Comparisons</span><b id="comparisons">0</b></div>
+<div class="stat"><span>Array writes / swaps</span><b id="writes">0</b></div>
+<div class="stat"><span>Step</span><b id="stepCount">0</b></div>
+</div>
+<h2 style="margin-top:18px">Visualization</h2>
+<div class="stage" id="stage" aria-label="Algorithm visualization"></div>
+<div class="legend"><span><i class="dot" style="background:#79a4f7"></i>Unprocessed</span><span><i class="dot" style="background:#f6b44e"></i>Current comparison</span><span><i class="dot" style="background:#55bd91"></i>Sorted / found</span><span><i class="dot" style="background:#c3a0f4"></i>Pivot / current item</span></div>
+</div>
+<div class="panel"><h2>What is happening?</h2><div id="explanation" class="explain">Choose an algorithm and press Run or Next step. The explanation will describe each operation.</div><div class="log" id="log" style="margin-top:12px">Ready. No operations performed yet.</div></div>
+<div class="panel"><h2>Algorithm complexity</h2><table><thead><tr><th>Algorithm</th><th>Time complexity</th><th>Extra space</th></tr></thead><tbody id="complexity"></tbody></table></div>
+</section>
+</main>
+<footer>Educational project. This tool demonstrates algorithm operations on a small array; its counters are illustrative. Binary Search requires sorted data, so this demo sorts a copy before searching. Built with HTML, CSS and JavaScript; no backend is required.</footer>
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+let original=[], arr=[], ops=[], idx=0, comparisons=0, writes=0, timer=null, paused=true, finished=false, foundIndex=-1;
+const complexities = {
+ bubble:["Bubble Sort","Best O(n) • Average/Worst O(n²)","O(1)"],
+ selection:["Selection Sort","O(n²)","O(1)"],
+ insertion:["Insertion Sort","Best O(n) • Average/Worst O(n²)","O(1)"],
+ linear:["Linear Search","Best O(1) • Worst O(n)","O(1)"],
+ binary:["Binary Search","Best O(1) • Worst O(log n)","O(1)"]
+};
+function parseInput(){const nums=$('values').value.split(',').map(x=>Number(x.trim()));if(!nums.length||nums.some(x=>!Number.isFinite(x))||nums.length>30){alert('Enter 1–30 valid numbers separated by commas.');return null;}return nums;}
+function push(type,a,b,msg,extra={}){ops.push({type,a,b,msg,...extra});}
+function buildOps(){
+  const kind=$('algorithm').value; let work=original.slice(); ops=[]; foundIndex=-1;
+  if(kind==='binary') work.sort((a,b)=>a-b);
+  if(kind==='bubble'){
+    for(let end=work.length-1;end>0;end--){for(let j=0;j<end;j++){push('compare',j,j+1,`Compare ${work[j]} and ${work[j+1]}.`);if(work[j]>work[j+1]){push('swap',j,j+1,`${work[j]} is greater than ${work[j+1]}, so swap them.`);[work[j],work[j+1]]=[work[j+1],work[j]];}}push('sorted',end,null,`Position ${end+1} is now sorted.`);}
+    if(work.length)push('sorted',0,null,'The array is sorted.');
+  } else if(kind==='selection'){
+    for(let i=0;i<work.length;i++){let min=i;for(let j=i+1;j<work.length;j++){push('compare',min,j,`Compare current minimum ${work[min]} with ${work[j]}.`);if(work[j]<work[min])min=j;}if(min!==i){push('swap',i,min,`Place the minimum value ${work[min]} at position ${i+1}.`);[work[i],work[min]]=[work[min],work[i]];}push('sorted',i,null,`Position ${i+1} is fixed.`);}
+  } else if(kind==='insertion'){
+    for(let i=1;i<work.length;i++){let key=work[i],j=i-1;push('current',i,null,`Take ${key} as the item to insert into the sorted left side.`);while(j>=0){push('compare',j,i,`Compare ${work[j]} with insertion value ${key}.`);if(work[j]>key){push('shift',j,j+1,`Shift ${work[j]} one position right.`);work[j+1]=work[j];j--;}else break;}push('insert',j+1,i,`Insert ${key} at position ${j+2}.`,{value:key});work[j+1]=key;push('sorted',i,null,`The first ${i+1} items are sorted.`);}
+    if(work.length)push('sorted',0,null,'The array is sorted.');
+  } else if(kind==='linear'){
+    const target=Number($('target').value);let found=false;
+    for(let i=0;i<work.length;i++){push('search',i,null,`Check position ${i+1}: is ${work[i]} equal to ${target}?`,{target});if(work[i]===target){push('found',i,null,`Found ${target} at position ${i+1}.`);found=true;break;}}
+    if(!found)push('miss',null,null,`${target} is not in the array.`);
+  } else if(kind==='binary'){
+    const target=Number($('target').value);let lo=0,hi=work.length-1,found=false;
+    push('info',null,null,'Binary Search uses a sorted copy of the input.');
+    while(lo<=hi){let mid=Math.floor((lo+hi)/2);push('binary',lo,hi,`Check middle position ${mid+1}: ${work[mid]} against ${target}.`,{mid,target});if(work[mid]===target){push('found',mid,null,`Found ${target} at sorted position ${mid+1}.`);found=true;break;}if(work[mid]<target){push('range',mid+1,hi,`${work[mid]} is smaller than ${target}; discard the left half.`,{mid});lo=mid+1;}else{push('range',lo,mid-1,`${work[mid]} is larger than ${target}; discard the right half.`,{mid});hi=mid-1;}}
+    if(!found)push('miss',null,null,`${target} is not in the sorted array.`);
+  }
+  arr=work.slice(); // final array saved; reconstruct starting array for playback
+  originalForPlayback = kind==='binary' ? original.slice().sort((a,b)=>a-b) : original.slice();
+  arr=originalForPlayback.slice(); idx=0;comparisons=0;writes=0;finished=false;paused=true;clearInterval(timer);timer=null;
+  $('run').disabled=false;$('pause').disabled=true;render();updateStats();showComplexity();
+  $('explanation').textContent='Ready. Press Run or Next step to begin.';
+  $('log').textContent='Ready: '+complexities[kind][0]+'.';
+}
+let originalForPlayback=[];
+function render(highlight=[],done=[]){
+ const stage=$('stage');stage.innerHTML='';const max=Math.max(1,...arr.map(Math.abs));
+ arr.forEach((v,i)=>{const bar=document.createElement('div');bar.className='bar';if(done.includes(i))bar.classList.add('done');if(highlight.includes(i))bar.classList.add('active');bar.style.height=(40+Math.abs(v)/max*190)+'px';bar.textContent=v;bar.title=`Index ${i} • Value ${v}`;stage.appendChild(bar);});
+}
+function updateStats(){$('comparisons').textContent=comparisons;$('writes').textContent=writes;$('stepCount').textContent=idx;}
+function showComplexity(){const kind=$('algorithm').value;const row=complexities[kind];$('complexity').innerHTML=`<tr><td>${row[0]}</td><td>${row[1]}</td><td>${row[2]}</td></tr>`;}
+function applyOp(op){
+ let hi=[],done=[];
+ if(op.type==='compare'){comparisons++;hi=[op.a,op.b];}
+ else if(op.type==='swap'){[arr[op.a],arr[op.b]]=[arr[op.b],arr[op.a]];writes+=2;hi=[op.a,op.b];}
+ else if(op.type==='shift'){arr[op.b]=arr[op.a];writes++;hi=[op.a,op.b];}
+ else if(op.type==='insert'){arr[op.a]=op.value;writes++;hi=[op.a];}
+ else if(op.type==='sorted'){done=Array.from({length:op.a+1},(_,i)=>i);hi=op.a===null?[]:[op.a];}
+ else if(op.type==='current'){hi=[op.a];}
+ else if(op.type==='search'){hi=[op.a];comparisons++;}
+ else if(op.type==='found'){hi=[op.a];done=[op.a];foundIndex=op.a;}
+ else if(op.type==='binary'){const mid=op.mid;hi=[mid];comparisons++;}
+ else if(op.type==='range'){hi=[op.a,op.b].filter(x=>x!==null&&x>=0&&x<arr.length);}
+ render(hi,done);$('explanation').textContent=op.msg;$('log').textContent=`Step ${idx+1}/${ops.length} • ${op.type.toUpperCase()}\n${op.msg}`;
+ if(op.type==='miss')$('log').textContent+='\\nResult: target not found.';
+ if(op.type==='found')$('log').textContent+='\\nResult: target found.';
+ updateStats();
+}
+function step(){if(idx>=ops.length){stop();finished=true;$('explanation').textContent='Finished. Reset or change the input to try again.';return;}applyOp(ops[idx]);idx++;updateStats();if(idx>=ops.length){stop();finished=true;}}
+function stop(){clearInterval(timer);timer=null;paused=true;$('run').disabled=false;$('pause').disabled=true;}
+function run(){if(!paused)return;if(idx>=ops.length)buildOps();paused=false;$('run').disabled=true;$('pause').disabled=false;const delays=[1400,1000,700,420,220];timer=setInterval(()=>{if(idx>=ops.length){stop();finished=true;return;}step();},delays[Number($('speed').value)-1]);}
+$('run').addEventListener('click',run);
+$('step').addEventListener('click',()=>{if(!timer&&idx>=ops.length)buildOps();step();});
+$('pause').addEventListener('click',stop);
+$('reset').addEventListener('click',()=>{const values=parseInput();if(!values)return;original=values;buildOps();});
+$('algorithm').addEventListener('change',()=>buildOps());
+$('speed').addEventListener('input',()=>{const names=['Very slow','Slow','Normal','Fast','Very fast'];$('speedText').textContent=names[Number($('speed').value)-1];if(!paused){stop();run();}});
+$('values').addEventListener('change',()=>{const values=parseInput();if(values){original=values;buildOps();}});
+$('target').addEventListener('change',()=>buildOps());
+const values=parseInput();original=values||[42,18,35,7,29,13,50,24];buildOps();
+})();
+</script>
+</body>
+</html>
